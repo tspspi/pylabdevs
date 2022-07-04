@@ -1,4 +1,4 @@
-# Lab devices base classes
+# Lab device base classes
 
 This repository supplies some abstract base classes for various device families
 that are used as basis for specific implementations. Those base classes provide
