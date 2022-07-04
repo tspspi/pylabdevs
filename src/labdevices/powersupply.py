@@ -1,5 +1,12 @@
 import atexit
 
+from enum import Enum
+
+class PowerSupplyLimit(Enum):
+	NONE = 0
+	VOLTAGE = 1
+	CURRENT = 2
+
 class PowerSupply:
 	def __init__(
 		self,
@@ -19,7 +26,7 @@ class PowerSupply:
 			raise ValueError("Power supply has to support at least one channel")
 		if (vrange is None) or (arange is None) or (prange is None):
 			raise ValueError("Voltage, current and power range has to be supplied")
-		if (not isinsntace(vrange, tuple)) or (not isinsntace(arange, tuple)) or (not isinsntace(prange, tuple)):
+		if (not isinstance(vrange, tuple)) or (not isinstance(arange, tuple)) or (not isinstance(prange, tuple)):
 			raise ValueError("Voltage, current and power ranges have to be tuples")
 		if (len(vrange) != 3) or (len(arange) != 3) or (len(prange) != 3):
 			raise ValueError("Ranges have to supply minimum, maximum and step size")
@@ -46,7 +53,11 @@ class PowerSupply:
 			})
 
 		# We ensure calling "off" whenever the process gets terminated ...
-		atexit.register(self.off)
+		atexit.register(self._exitOff)
+
+	def _exitOff(self):
+		if self._isConnected():
+			self.off()
 
 	def _setChannelEnable(self, enable, channel):
 		raise NotImplementedError()
@@ -54,11 +65,15 @@ class PowerSupply:
 		raise NotImplementedError()
 	def _setCurrent(self, current, channel):
 		raise NotImplementedError()
-	def _getVoltage(self):
+	def _getVoltage(self, channel):
 		raise NotImplementedError()
-	def _getCurrent(self):
+	def _getCurrent(self, channel):
 		raise NotImplementedError()
 	def _off(self):
+		raise NotImplementedError()
+	def _getLimitMode(self, channel):
+		raise NotImplementedError()
+	def _isConnected(self):
 		raise NotImplementedError()
 
 	def setChannelEnable(self, enable, channel = 1):
@@ -127,3 +142,11 @@ class PowerSupply:
 
 	def off(self):
 		return self._off()
+
+	def getLimitMode(self, channel):
+		if not isinstance(channel, int):
+			raise ValueError("Channel has to be an integer number")
+		if (channel < 1) or (channel > self._nchannels):
+			raise ValueError("Channel {} is out of range (valid channel range is 1 to {})".format(channel, self._nchannels))
+
+		return self._getLimitMode(channel)
