@@ -96,11 +96,12 @@ class PowerSupply:
 		if not (isinstance(voltage, float) or isinstance(voltage, int)):
 			raise ValueError("Voltage has to be an integer in range {} to {}".format(vrange[0], vrange[1]))
 
-		pTarget = abs(voltage * self._setValues[channel]['amps'])
+		pTarget = abs(voltage * self._setValues[channel-1]['amps'])
 		if (pTarget < self._prange[0]) or (pTarget > self._prange[1]):
 			raise ValueError("Selected voltage lies out of supported power range ({} to {} watts)".format(self._prange[0], self._prange[1]))
 
-		return self._setVoltage(voltage, channel)
+		if self._setVoltage(voltage, channel):
+			self._setValues[channel-1]['volts'] = voltage
 
 	def setCurrent(self, current, channel = 1):
 		if not isinstance(channel, int):
@@ -110,11 +111,12 @@ class PowerSupply:
 		if not (isinstance(current, float) or isinstance(current, int)):
 			raise ValueError("Current has to be an integer in range {} to {}".format(arange[0], arange[1]))
 
-		pTarget = abs(current * self._setValues[channel]['volts'])
+		pTarget = abs(current * self._setValues[channel-1]['volts'])
 		if (pTarget < self._prange[0]) or (pTarget > self._prange[1]):
 			raise ValueError("Selected current lies out of supported power range ({} to {} watts)".format(self._prange[0], self._prange[1]))
 
-		return self._setCurrent(current, channel)
+		if self._setCurrent(current, channel):
+			self._setValues[channel-1]['amps'] = current
 
 	def getVoltage(self, channel = 1):
 		if not isinstance(channel, int):
@@ -126,7 +128,7 @@ class PowerSupply:
 		if self._capabilities['measureV']:
 			measVolts = self._getVoltage(channel)
 
-		return measVolts, self._setValues[channel]['volts']
+		return measVolts, self._setValues[channel-1]['volts']
 
 	def getCurrent(self, channel = 1):
 		if not isinstance(channel, int):
@@ -138,12 +140,12 @@ class PowerSupply:
 		if self._capabilities['measureA']:
 			measCurrent = self._getCurrent(channel)
 
-		return measCurrent, self._setValues[channel]['amps']
+		return measCurrent, self._setValues[channel-1]['amps']
 
 	def off(self):
 		return self._off()
 
-	def getLimitMode(self, channel):
+	def getLimitMode(self, channel = 1):
 		if not isinstance(channel, int):
 			raise ValueError("Channel has to be an integer number")
 		if (channel < 1) or (channel > self._nchannels):
