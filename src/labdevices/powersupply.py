@@ -31,6 +31,9 @@ class PowerSupply:
 		if (len(vrange) != 3) or (len(arange) != 3) or (len(prange) != 3):
 			raise ValueError("Ranges have to supply minimum, maximum and step size")
 
+		self._usesContext = False
+		self._usedConnect = False
+
 		self._nchannels = nChannels
 		self._vrange = vrange
 		self._arange = arange
@@ -74,6 +77,10 @@ class PowerSupply:
 	def _getLimitMode(self, channel):
 		raise NotImplementedError()
 	def _isConnected(self):
+		raise NotImplementedError()
+	def _connect(self):
+		raise NotImplementedError()
+	def _disconnect(self):
 		raise NotImplementedError()
 
 	def setChannelEnable(self, enable, channel = 1):
@@ -152,3 +159,26 @@ class PowerSupply:
 			raise ValueError("Channel {} is out of range (valid channel range is 1 to {})".format(channel, self._nchannels))
 
 		return self._getLimitMode(channel)
+
+	# Imperative connect & disconnect methods
+
+	def connect(self):
+		if self._usesContext:
+			raise ValueError("Cannot use connect on a context managed (with) object")
+
+		res = self._connect()
+		if not res:
+			return res
+
+		self._usedConnect = True
+		return True
+
+	def disconnect(self):
+		if self._usesContext:
+			raise ValueError("Cannot use connect on a context managed (with) object")
+		if not self._usedConnect:
+			return True
+
+		self._disconnect()
+		self._usedConnect = False
+		return True
