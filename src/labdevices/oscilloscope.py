@@ -38,6 +38,15 @@ class OscilloscopeTimebaseMode(Enum):
     def has_value(cls, v):
         return v in cls._value2member_map_
 
+class OscilloscopeCouplingMode(Enum):
+    DC = 0
+    AC = 1
+    GND = 2
+
+    @classmethod
+    def has_value(cls, v):
+        return v in cls._value2member_map_
+
 class Oscilloscope:
     def __init__(
         self,
@@ -48,6 +57,7 @@ class Oscilloscope:
         supportedTriggerModes = [ ],
         supportedTimebaseModes = [ ],
         supportedRunModes = [ ],
+        supportedChannelCouplingModes = [],
 
         triggerForceSupported = False,
 
@@ -67,6 +77,8 @@ class Oscilloscope:
             raise ValueError("Sweep modes have to be either list or tuples")
         if not (isinstance(timebaseScale, tuple) or isinstance(timebaseScale, list)):
             raise ValueError("Timebase scale has to be supplied as list of tuple")
+        if not (isinstance(supportedChannelCouplingModes, tuple) or isinstance(supportedChannelCouplingModes, list)):
+            raise ValueError("Supported channel coupling modes have to be supplied as list of tuple")
 
         for rm in supportedRunModes:
             if not isinstance(rm, OscilloscopeRunMode):
@@ -80,6 +92,9 @@ class Oscilloscope:
         for tbm in supportedTimebaseModes:
             if not isinstance(tbm, OscilloscopeTimebaseMode):
                 raise ValueError(f"Timebase mode {tbm} not known by labdevs library")
+        for chc in supportedChannelCouplingModes:
+            if not isinstance(chc, OscilloscopeCouplingMode):
+                raise ValueError(f"Coupling mode {chc} is not known by labdevs library")
 
         if not isinstance(timebaseScale[0], float) and not isinstance(timebaseScale[0], int):
             raise ValueError("Timebase minima and maxima have to be floating point numbers in seconds")
@@ -95,6 +110,7 @@ class Oscilloscope:
         self._supportedTimebaseModes = supportedTimebaseModes
         self._supportedRunModes = supportedRunModes
         self._trigger_force_supported = triggerForceSupported
+        self._supportedChannelCouplingModes = supportedChannelCouplingModes
 
         self._timebase_scale = timebaseScale
 
@@ -139,6 +155,10 @@ class Oscilloscope:
     def _set_channel_enable(self, channel, enabled):
         raise NotImplementedError()
     def _is_channel_enabled(self, channel):
+        raise NotImplementedError()
+    def _set_channel_coupling(self, channel, mode):
+        raise NotImplementedError()
+    def _get_channel_coupling(self, channel):
         raise NotImplementedError()
 
     # Public API
@@ -222,6 +242,22 @@ class Oscilloscope:
 
     def get_timebase_scale(self):
         return self._get_timebase_scale()
+
+    def set_channel_coupling(self, channel, couplingMode):
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range[0;{self._nchannels-1}]")
+        if not isinstance(couplingMode, OscilloscopeCouplingMode):
+            raise ValueError(f"Supplied coupling mode {couplingMode} is not a OscilloscopeCouplingMode")
+        if couplingMode not in self._supportedChannelCouplingModes:
+            raise ValueError(f"Coupling mode {couplingMode} is not supported by the device")
+
+        self._set_channel_coupling(channel, couplingMode)
+
+    def get_channel_coupling(self, channel):
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
+
+        return self._get_channel_coupling(channel)
 
     def off(self):
         return self._off()
