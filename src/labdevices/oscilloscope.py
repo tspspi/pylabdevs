@@ -160,6 +160,10 @@ class Oscilloscope:
         raise NotImplementedError()
     def _get_channel_coupling(self, channel):
         raise NotImplementedError()
+    def _set_channel_probe_ratio(self, channel, ratio):
+        raise NotImplementedError()
+    def _get_channel_probe_ratio(self, channel):
+        raise NotImplementedError()
 
     # Public API
 
@@ -258,6 +262,18 @@ class Oscilloscope:
             raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
 
         return self._get_channel_coupling(channel)
+
+    def set_channel_probe_ratio(self, channel, ratio):
+        if ratio <= 0:
+            raise ValueError(f"Invalid probe ratio {ratio} supplied")
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
+        return self._set_channel_probe_ratio(channel, ratio)
+
+    def get_channel_probe_ratio(self, channel):
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
+        return self._get_channel_probe_ratio(channel)
 
     def off(self):
         return self._off()
