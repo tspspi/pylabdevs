@@ -275,6 +275,19 @@ class Oscilloscope:
             raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
         return self._get_channel_probe_ratio(channel)
 
+    def query_waveform(channel):
+        if isinstance(channel, list) or isinstance(channel, tuple):
+            # Check each supplied channel is a valid int
+            for ch in channel:
+                if (int(ch) < 0) or (int(ch) >= self._nchannels) or (int(ch) != ch):
+                    raise ValueError(f"Supplied channel {ch} is not valid")
+        else:
+            channel = int(channel)
+            if (channel < 0) or (channel >= self._nchannels):
+                raise ValueError(f"Supplied channel {channel} is not valid")
+
+        self._query_waveform(channel)
+
     def off(self):
         return self._off()
 
