@@ -286,7 +286,7 @@ class Oscilloscope:
             if (channel < 0) or (channel >= self._nchannels):
                 raise ValueError(f"Supplied channel {channel} is not valid")
 
-        self._query_waveform(channel)
+        return self._query_waveform(channel)
 
     def off(self):
         return self._off()
