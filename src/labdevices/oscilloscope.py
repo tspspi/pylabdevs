@@ -61,7 +61,8 @@ class Oscilloscope:
 
         triggerForceSupported = False,
 
-        timebaseScale = ( None, None )
+        timebaseScale = ( None, None ),
+        voltageScale = ( None, None )
     ):
         if not isinstance(nChannels, int):
             raise ValueError("Channel count has to be an integer")
@@ -79,6 +80,8 @@ class Oscilloscope:
             raise ValueError("Timebase scale has to be supplied as list of tuple")
         if not (isinstance(supportedChannelCouplingModes, tuple) or isinstance(supportedChannelCouplingModes, list)):
             raise ValueError("Supported channel coupling modes have to be supplied as list of tuple")
+        if not (isinstance(voltageScale, tuple) or isinstance(voltageScale, list)):
+            raise ValueError("Voltage scale has to be a tuple or list")
 
         for rm in supportedRunModes:
             if not isinstance(rm, OscilloscopeRunMode):
@@ -101,6 +104,11 @@ class Oscilloscope:
         if not isinstance(timebaseScale[1], float) and not isinstance(timebaseScale[1], int):
             raise ValueError("Timebase minima and maxima have to be floating point numbers in seconds")
 
+        if not isinstance(voltageScale[0], float) and not isinstance(voltageScale[0], int):
+            raise ValueError("Voltage scale minimum has to be either float or integer")
+        if not isinstance(voltageScale[1], float) and not isinstance(voltageScale[1], int):
+            raise ValueError("Voltage scale minimum has to be either float or integer")
+
         self._usesContext = False
         self._usedConnect = False
 
@@ -113,6 +121,7 @@ class Oscilloscope:
         self._supportedChannelCouplingModes = supportedChannelCouplingModes
 
         self._timebase_scale = timebaseScale
+        self._voltage_scale = voltageScale
 
         atexit.register(self._exitOff)
 
@@ -163,6 +172,10 @@ class Oscilloscope:
     def _set_channel_probe_ratio(self, channel, ratio):
         raise NotImplementedError()
     def _get_channel_probe_ratio(self, channel):
+        raise NotImplementedError()
+    def _set_channel_scale(self, channel, scale):
+        raise NotImplementedError()
+    def _get_channel_scale(self, channel):
         raise NotImplementedError()
 
     # Public API
@@ -274,6 +287,16 @@ class Oscilloscope:
         if (channel < 0) or (channel >= self._nchannels):
             raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
         return self._get_channel_probe_ratio(channel)
+
+    def set_channel_scale(self, channel, scale):
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
+        self._set_channel_scale(channel, scale)
+
+    def get_channel_scale(self, channel):
+        if (channel < 0) or (channel >= self._nchannels):
+            raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
+        return self._get_channel_scale(channel)
 
     def query_waveform(self, channel):
         if isinstance(channel, list) or isinstance(channel, tuple):
