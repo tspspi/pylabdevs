@@ -15,3 +15,6 @@ convention. Changes should never break existing libraries.
 Currently implemented base classes:
 
 * Power supplies
+   * [KA3005PSerial](https://github.com/tspspi/pyka3005p) for Korad KA3005P power supplies via serial interface
+* Oscilloscopes
+   * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
