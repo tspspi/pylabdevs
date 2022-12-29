@@ -18,3 +18,5 @@ Currently implemented base classes:
    * [KA3005PSerial](https://github.com/tspspi/pyka3005p) for Korad KA3005P power supplies via serial interface
 * Oscilloscopes
    * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
+* Function generators / Arbitrary waveform generators
+   * [FY6900](https://github.com/tspspi/pyfy6900) for FE FY6900
