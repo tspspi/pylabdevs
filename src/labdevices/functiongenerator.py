@@ -60,6 +60,10 @@ class FunctionGenerator:
 		arbitraryWaveforms = False,
 		hasFrequencyCounter = False,
 
+		arbitraryWaveformLength = ( None, None ),
+		arbitraryWaveformMinMax = ( None, None ),
+		arbitraryNormalizeInDriver = False,
+
 		supportedWaveforms = [],
 		supportedTriggerModes = [],
 		supportedModulations = [],
@@ -74,6 +78,10 @@ class FunctionGenerator:
 			raise ValueError("Amplitude range has to be either a list or a tuple")
 		if (not isinstance(offsetrange, list)) and (not isinstance(offsetrange, tuple)):
 			raise ValueError("Amplitude range has to be either a list or a tuple")
+		if (not isinstance(arbitraryWaveformLength, list)) and (not isinstance(arbitraryWaveformLength, tuple)):
+			raise ValueError("Arbitrary waveform length has to be either a 2-list or 2-tuple")
+		if (not isinstance(arbitraryWaveformMinMax, list)) and (not isinstance(arbitraryWaveformMinMax, tuple)):
+			raise ValueError("Arbitrary waveform length has to be either a 2-list or 2-tuple")
 
 		if len(freqrange) != 2:
 			raise ValueError("Frequency range has to be a 2-tuple or 2-list")
@@ -96,6 +104,20 @@ class FunctionGenerator:
 		if (not isinstance(offsetrange[1], float)) and (not isinstance(offsetrange[1], int)):
 			raise ValueError("Offset range has to be specified with floats or ints")
 
+		if len(arbitraryWaveformLength) != 2:
+			raise ValueError("Arbitrary waveform shape length has to be a 2-tuple or 2-list")
+		if (not isinstance(arbitraryWaveformLength[0], float)) and (not isinstance(arbitraryWaveformLength[0], int)):
+			raise ValueError("Arbitrary waveform length has to be specified with floats or ints")
+		if (not isinstance(arbitraryWaveformLength[1], float)) and (not isinstance(arbitraryWaveformLength[1], int)):
+			raise ValueError("Arbitrary waveform length has to be specified with floats or ints")
+
+		if len(arbitraryWaveformMinMax) != 2:
+			raise ValueError("Arbitrary waveform min/max has to be a 2-tuple or 2-list")
+		if (not isinstance(arbitraryWaveformMinMax[0], float)) and (not isinstance(arbitraryWaveformMinMax[0], int)):
+			raise ValueError("Arbitrary waveform min/max has to be specified with floats or ints")
+		if (not isinstance(arbitraryWaveformMinMax[1], float)) and (not isinstance(arbitraryWaveformMinMax[1], int)):
+			raise ValueError("Arbitrary waveform min/max has to be specified with floats or ints")
+
 		if not isinstance(supportedWaveforms, list):
 			raise ValueError("Supported waveforms has to be a list")
 		if not isinstance(supportedTriggerModes, list):
@@ -117,6 +139,9 @@ class FunctionGenerator:
 		self._freqrange = freqrange
 		self._amprange = amplituderange
 		self._offsetrange = offsetrange
+		self._arbitraryWaveformLength = arbitraryWaveformLength
+		self._arbitraryWaveformMinMax = arbitraryWaveformMinMax
+		self._arbitraryNormalizeInDriver = bool(arbitraryNormalizeInDriver)
 
 		self._supported_waveforms = supportedWaveforms
 		self._supported_modulations = supportedModulations
@@ -141,7 +166,7 @@ class FunctionGenerator:
 		raise NotImplementedException()
 
 	# Channel configuration
-	def _set_channel_waveform(self, channel = None, waveform = None):
+	def _set_channel_waveform(self, channel = None, waveform = None, arbitrary = None):
 		raise NotImplementedException()
 	def _get_channel_waveform(self, channel = None):
 		raise NotImplementedException()
@@ -168,6 +193,9 @@ class FunctionGenerator:
 	def _set_channel_enabled(self, channel = None, enable = None):
 		raise NotImplementedException()
 	def _is_channel_enabled(self, channel = None):
+		raise NotImplementedException()
+
+	def _upload_waveform(self, slot, wavedata, normalize = False):
 		raise NotImplementedException()
 
 	# Public API:
@@ -234,19 +262,25 @@ class FunctionGenerator:
 					retry_cnt = retry_cnt - 1
 				continue
 
-	def set_channel_waveform(self, channel, waveform):
+	def set_channel_waveform(self, channel, waveform = None, arbitrary = None):
 		channel = int(channel)
 		if (channel < 0) or (channel >= self._nchannels):
 			raise ValueError(f"Supplied channel index is out of range ({self._nchannels} supported channels)")
-		if not isinstance(waveform, FunctionGeneratorWaveform):
+		if (waveform is None) and (arbitrary is None):
+			raise ValueError("Either arbitrary waveform index or waveform has to be specified")
+		if (waveform is not None) and (arbitrary is not None):
+			raise ValueError("Only waveform or arbitrary waveform index has to be specified, not both")
+		if (not isinstance(waveform, FunctionGeneratorWaveform)) and (waveform is not None):
 			raise ValueError(f"Supplied waveform {waveform} is not an instance of FunctionGeneratorWaveform")
-		if waveform not in self._supported_waveforms:
+		if (waveform not in self._supported_waveforms) and (waveform is not None):
 			raise ValueError(f"The waveform {waveform} is not supported by this particular device")
+		if (arbitrary is not None) and (not self._has_arb_waveforms):
+			raise ValueError(f"Arbitrary waveforms are not supported by this device")
 
 		retry_cnt = self._commandretries
 		while True:
 			try:
-				return self._set_channel_waveform(channel, waveform)
+				return self._set_channel_waveform(channel, waveform = waveform, arbitrary = arbitrary)
 			except (CommunicationError_Timeout, CommunicationError_ProtocolViolation) as e:
 				if retry_cnt == 0:
 					raise e
@@ -477,3 +511,29 @@ class FunctionGenerator:
 				if retry_cnt > 0:
 					retry_cnt = retry_cnt - 1
 				continue
+
+	def upload_waveform(self, slot, wavedata, normalize = False):
+		if not self._has_arb_waveforms:
+			raise NotImplementedException("This device does not support arbitrary wavefunctions")
+
+		try:
+			ln = len(wavedata)
+		except:
+			raise ValueError("Wavedata has to be either a list, tuple or numpy array")
+
+		if (len(wavedata) < self._arbitraryWaveformLength[0]) or (len(wavedata) > self._arbitraryWaveformLength[1]):
+			raise ValueError("Waveform data has to be in range [{self._arbitraryWaveformLength[0]}; {self._arbitraryWaveformLength[1]}]")
+
+		if normalize and not self._arbitraryNormalizeInDriver:
+			mi = min(wavedata)
+			mx = max(wavedata)
+			rng = mx - mi
+			if rng == 0:
+				rng = 1
+			for i in range(len(wavedata)):
+				wavedata[i] = ((wavedata[i] - mi) / rng) * (self._arbitraryWaveformMinMax[1] - self._arbitraryWaveformMinMax[0]) + self._arbitraryWaveformMinMax[0]
+
+			if (min(wavedata) < self._arbitraryWaveformMinMax[0]) or (max(wavedata) > self._arbitraryWaveformMinMax[1]):
+				raise ValueError(f"The DDS DAC requires values from {self._arbitraryWaveformMinMax[0]} to {self._arbitraryWaveformMinMax[1]}")
+
+		self._upload_waveform(slot, wavedata, normalize)
