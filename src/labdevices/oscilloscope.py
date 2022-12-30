@@ -178,6 +178,9 @@ class Oscilloscope:
     def _get_channel_scale(self, channel):
         raise NotImplementedError()
 
+    def _query_waveform(self, channel, stats = None):
+        raise NotImplementedError()
+
     # Public API
 
     def set_channel_enable(self, channel, enabled):
@@ -298,7 +301,7 @@ class Oscilloscope:
             raise ValueError(f"Supplied channel {channel} is out of range [0;{self._nchannels-1}]")
         return self._get_channel_scale(channel)
 
-    def query_waveform(self, channel):
+    def query_waveform(self, channel, stats = None):
         if isinstance(channel, list) or isinstance(channel, tuple):
             # Check each supplied channel is a valid int
             for ch in channel:
@@ -309,7 +312,7 @@ class Oscilloscope:
             if (channel < 0) or (channel >= self._nchannels):
                 raise ValueError(f"Supplied channel {channel} is not valid")
 
-        return self._query_waveform(channel)
+        return self._query_waveform(channel, stats)
 
     def off(self):
         return self._off()
