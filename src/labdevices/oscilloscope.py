@@ -3,6 +3,7 @@
 # Base class for oscilloscopes
 
 import atexit
+import numpy as np
 
 from enum import Enum
 
@@ -312,7 +313,76 @@ class Oscilloscope:
             if (channel < 0) or (channel >= self._nchannels):
                 raise ValueError(f"Supplied channel {channel} is not valid")
 
-        return self._query_waveform(channel, stats)
+        data = self._query_waveform(channel, stats)
+
+        if stats is not None:
+            if isinstance(stats, list) or isinstance(stats, tuple):
+                for stat in stats:
+                    data = self._calculate_stats(data, stat)
+            else:
+                # Only single statistics requested
+                self._calculate_stats(data, stats)
+
+        return data
+
+    def _calculate_stats(self, data, stat):
+        availStats = {
+            "mean" : self._stats_avg,
+            "fft" : self._stats_fft,
+            "ifft" : self._stats_ifft,
+            "correlate" : self._stats_correlate,
+            "autocorrelate" : self._stats_autocorrelate
+        }
+
+        if stat in availStats:
+            data = availStats[stat](data)
+        return data
+
+    def _stats_avg(self, data):
+        # Do this for every channel in the data dictionary
+        for iChan in range(self._nchannels):
+            if f"y{iChan}" in data:
+                if "means" not in data:
+                    data["means"] = { }
+                if (f"y{iChan}_avg" not in data) or (f"y{iChan}_std" not in data):
+                    data["means"][f"y{iChan}_avg"] = np.mean(data[f"y{iChan}"])
+                    data["means"][f"y{iChan}_std"] = np.std(data[f"y{iChan}"])
+        return data
+    def _stats_fft(self, data):
+        for iChan in range(self._nchannels):
+            if f"y{iChan}" in data:
+                if "fft" not in data:
+                    data["fft"] = { }
+                if (f"y{iChan}" not in data["fft"]) or (f"y{iChan}_real" not in data["fft"]):
+                    data["fft"][f"y{iChan}"] = np.fft.fft(data[f"y{iChan}"])
+                    data["fft"][f"y{iChan}_real"] = np.absolute(data["fft"][f"y{iChan}"])
+        return data
+    def _stats_ifft(self, data):
+        for iChan in range(self._nchannels):
+            if f"y{iChan}" in data:
+                if "ifft" not in data:
+                    data["ifft"] = { }
+                if f"y{iChan}" not in data["ifft"]:
+                    data["ifft"][f"y{iChan}"] = np.fft.ifft(data[f"y{iChan}"])
+        return data
+    def _stats_autocorrelate(self, data):
+        for iChan in range(self._nchannels):
+            if f"y{iChan}" in data:
+                if "autocorrelation" not in data:
+                    data["autocorrelation"] = { }
+                if f"y{iChan}" not in data["autocorrelation"]:
+                    data["autocorrelation"][f"y{iChan}"] = np.correlate(data[f"y{iChan}"], data[f"y{iChan}"], mode = "full")
+        return data
+    def _stats_correlate(self, data):
+        if self._nchannels > 1:
+            for iChan1 in range(self._nchannels-1):
+                for iChan2 in range(iChan1, self._nchannels):
+                    if (f"y{iChan1}" in data) and (f"y{iChan2}" in data):
+                        if "correlation" not in data:
+                            data["correlation"] = { }
+                        if f"y{iChan1}y{iChan2}" not in data["correlation"]:
+                            data["correlation"][f"y{iChan1}y{iChan2}"] = np.correlate(data[f"y{iChan1}"], data[f"y{iChan2}"], mode = "full")
+        return data
 
     def off(self):
         return self._off()
