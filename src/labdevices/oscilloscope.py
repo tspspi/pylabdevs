@@ -376,7 +376,7 @@ class Oscilloscope:
     def _stats_correlate(self, data):
         if self._nchannels > 1:
             for iChan1 in range(self._nchannels-1):
-                for iChan2 in range(iChan1, self._nchannels):
+                for iChan2 in range(iChan1+1, self._nchannels):
                     if (f"y{iChan1}" in data) and (f"y{iChan2}" in data):
                         if "correlation" not in data:
                             data["correlation"] = { }
