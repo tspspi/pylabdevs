@@ -20,3 +20,7 @@ Currently implemented base classes:
    * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
 * Function generators / Arbitrary waveform generators
    * [FY6900](https://github.com/tspspi/pyfy6900) for FE FY6900
+* Pressure gauges
+   * [PYBPG400](https://github.com/tspspi/pybpg400) for the RS232C interface of the INFICON BPG400 pressure gauge
+* Vector network analyzers
+   * NanoVNA v2 (work in progress)
