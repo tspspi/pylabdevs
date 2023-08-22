@@ -16,10 +16,12 @@ Currently implemented base classes:
 
 * Power supplies
    * [KA3005PSerial](https://github.com/tspspi/pyka3005p) for Korad KA3005P power supplies via serial interface
+   * [pydp832](https://github.com/tspspi/pydp832) for Rigol DP832 power supplies via Ethernet
 * Oscilloscopes
    * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
 * Function generators / Arbitrary waveform generators
    * [FY6900](https://github.com/tspspi/pyfy6900) for FE FY6900
+   * Rigol DG832 (work in progress)
 * Pressure gauges
    * [PYBPG400](https://github.com/tspspi/pybpg400) for the RS232C interface of the INFICON BPG400 pressure gauge
 * Vector network analyzers
