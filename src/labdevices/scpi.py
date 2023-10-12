@@ -15,7 +15,7 @@ class SCPIDeviceEthernet:
 
         self._address = address
         self._port = port
-        self._socket = socket
+        self._socket = None
 
     def connect(self, address = None, port = None):
         if self._socket is None:
