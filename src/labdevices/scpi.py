@@ -49,7 +49,7 @@ class SCPIDeviceEthernet:
     def scpiQuery(self, query):
         if not self.isConnected():
             raise CommunicationError_NotConnected("Device not connected")
-        self._socket.sendall((command + "\n").encode())
+        self._socket.sendall((query + "\n").encode())
         readData = ""
 
         while True:
