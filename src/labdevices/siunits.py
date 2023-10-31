@@ -77,7 +77,6 @@ class SiUtils:
 
     def get_factor(self, unit):
         un = self.get_unit(unit)
-        print(un)
         if un is None:
             return 1
         return self._tbl[un]['factor']
