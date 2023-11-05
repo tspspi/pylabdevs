@@ -23,6 +23,21 @@ class GPIO:
     ):
         self._maxio = numberOfPins
 
+    # Abstract methods that should be implemented by any implementation
+
+    def _getConfig(self, pin):
+        raise NotImplementedError()
+    def _setConfig(self, pin):
+        raise NotImplementedError()
+    def _set(self, pin, status):
+        raise NotImplementedError()
+    def _get(self, pin):
+        raise NotImplementedError()
+    def _pulse(self, pin, microseconds, state = None):
+        raise NotImplementedError()
+
+    # Public methods available to any user instance
+
     def getIOCount(self):
         return self._maxio
 
