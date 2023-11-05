@@ -29,3 +29,6 @@ Currently implemented base classes:
    * NanoVNA v2 (work in progress)
 * Scanning Electron Microscopes
    * XL30 ESEM (work in progress)
+* General purpose I/O devices
+   * [Rasbperry PI GPIO under FreeBSD](https://github.com/tspspi/fbsdgpio/)
+* SPI bus
