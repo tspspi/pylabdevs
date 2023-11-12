@@ -32,3 +32,4 @@ Currently implemented base classes:
 * General purpose I/O devices
    * [Rasbperry PI GPIO under FreeBSD](https://github.com/tspspi/fbsdgpio/)
 * SPI bus
+   * [FreeBSD spigen interface](https://github.com/tspspi/fbsdspiwrapper)
