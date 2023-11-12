@@ -28,7 +28,7 @@ Currently implemented base classes:
 * Vector network analyzers
    * NanoVNA v2 (work in progress)
 * Scanning Electron Microscopes
-   * XL30 ESEM (work in progress)
+   * [XL30 ESEM](https://github.com/tspspi/pyxl30) (work in progress)
 * General purpose I/O devices
    * [Rasbperry PI GPIO under FreeBSD](https://github.com/tspspi/fbsdgpio/)
 * SPI bus
