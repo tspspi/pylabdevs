@@ -28,7 +28,7 @@ Currently implemented base classes:
 * Pressure gauges
    * [PYBPG400](https://github.com/tspspi/pybpg400) for the RS232C interface of the INFICON BPG400 pressure gauge
 * Vector network analyzers
-   * NanoVNA v2 (work in progress)
+   * [NanoVNA v2](https://github.com/tspspi/pynanovnav2) (work in progress)
 * Scanning Electron Microscopes
    * [XL30 ESEM](https://github.com/tspspi/pyxl30) (work in progress)
 * General purpose I/O devices
