@@ -19,7 +19,7 @@ Currently implemented base classes:
    * [pydp832](https://github.com/tspspi/pydp832) for Rigol DP832 power supplies via Ethernet
 * Oscilloscopes
    * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
-   * [Rigol DHOxxx](https://github.com/MasterJubei/pydho800) for Rigol DHOxxx oscilloscopes (by [MaterJubei](https://github.com/MaterJubei))
+   * [Rigol DHOxxx](https://github.com/MasterJubei/pydho800) for Rigol DHOxxx oscilloscopes (by [MasterJubei](https://github.com/MasterJubei))
 * Function generators / Arbitrary waveform generators
    * [FY6900](https://github.com/tspspi/pyfy6900) for FE FY6900
    * Rigol DG832 (work in progress)
