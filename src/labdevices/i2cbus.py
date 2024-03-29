@@ -8,3 +8,5 @@ class I2CBus:
         raise NotImplementedError()
     def write(self, device, data, raiseException = False):
         raise NotImplementedError()
+    def writeread(self, device, dataOut, lenIn, raiseException = False):
+        raise NotImplementedError()
