@@ -226,5 +226,5 @@ class SpectrumAnalyzer:
         pass
 
     def query_trace(self, trace = 0):
-        pass
+        return self._query_trace(trace)
 
