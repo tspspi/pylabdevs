@@ -17,6 +17,8 @@ Currently implemented base classes:
 * Power supplies
    * [KA3005PSerial](https://github.com/tspspi/pyka3005p) for Korad KA3005P power supplies via serial interface
    * [pydp832](https://github.com/tspspi/pydp832) for Rigol DP832 power supplies via Ethernet
+   * [pykd3300](https://github.com/tspspi/pykd3300) for Korad KD3305P and KD3305P+ power supply (ethernet, usb, serial)
+   * [pyka3005p](https://github.com/tspspi/pyka3005p) for Korad KA3005P
 * Oscilloscopes
    * [Rigol MSO5000](https://github.com/tspspi/pymso5000) for Rigol MSO5000 oscilloscopes
    * [Rigol DHOxxx](https://github.com/MasterJubei/pydho800) for Rigol DHOxxx oscilloscopes (by [MasterJubei](https://github.com/MasterJubei))
