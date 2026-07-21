@@ -31,7 +31,86 @@ Currently implemented base classes:
    * [NanoVNA v2](https://github.com/tspspi/pynanovnav2) (work in progress)
 * Scanning Electron Microscopes
    * [XL30 ESEM](https://github.com/tspspi/pyxl30) (work in progress)
+* Transmission electron microscopes
+   * `TransmissionElectronMicroscope` provides a backend agnostic class based abstraction for a modular TEM stack
+   * `TEMStack` models the ordered column and detector chain
+   * Subsystems such as `ElectronSource`, `Monochromator`, `Lens`, `Stigmator`, `AberrationCorrector`, `ScanGenerator`, `SampleStage`, `EnergyFilter`, `Spectrometer` and `Detector` are represented as separate classes
 * General purpose I/O devices
    * [Rasbperry PI GPIO under FreeBSD](https://github.com/tspspi/fbsdgpio/)
 * SPI bus
    * [FreeBSD spigen interface](https://github.com/tspspi/fbsdspiwrapper)
+
+## TEM architecture
+
+The TEM abstraction is intentionally split into two layers:
+
+* `TransmissionElectronMicroscope` is the frontend entry point used by client code
+* `TEMStack` stores the ordered composition of the microscope
+* Individual subsystems are represented by classes derived from `TEMComponent`
+* Optical modes such as `TEM` and `STEM` are separate from runtime modes that store semantic parameter sets for intermediate operating points
+
+This keeps client code independent of hardware specific details such as registers,
+message IDs or TCP commands. A backend implementation can later translate semantic
+operations onto a concrete microscope while still exposing the same class structure.
+
+Example:
+
+```python
+from labdevices.tem import TransmissionElectronMicroscope
+from labdevices.tem import TEMStack, TEMOpticalMode, TEMDetectorMode, TEMColumnRegion
+from labdevices.tem import ElectronSource, Monochromator, Lens, Stigmator
+from labdevices.tem import ScanGenerator, SampleStage, AberrationCorrector, Detector
+
+stack = TEMStack([
+    ElectronSource("x_feg", emission_type = "cold_field_emission"),
+    Monochromator("monochromator"),
+    Lens("c1", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
+    Lens("c2", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
+    Stigmator("condenser_stig", region = TEMColumnRegion.ILLUMINATION),
+    ScanGenerator("scan_generator", supported_modes = [TEMOpticalMode.STEM]),
+    SampleStage("eucentric_stage"),
+    AberrationCorrector("probe_corrector", region = TEMColumnRegion.POST_SPECIMEN),
+    Detector(
+        "haadf",
+        detector_modes = [TEMDetectorMode.HIGH_ANGLE_ANNULAR_DARK_FIELD],
+        supported_modes = [TEMOpticalMode.STEM]
+    )
+])
+
+tem = TransmissionElectronMicroscope(
+    stack = stack,
+    supported_modes = [TEMOpticalMode.TEM, TEMOpticalMode.STEM]
+)
+
+detectors = tem.get_detectors(TEMDetectorMode.HIGH_ANGLE_ANNULAR_DARK_FIELD)
+```
+
+Runtime adjustments and intermediate operating points are supported without
+exposing registers to client code:
+
+```python
+from labdevices.tem import TEMRuntimeMode
+
+tem.set_optical_mode(TEMOpticalMode.STEM)
+tem.stack["c2"].set_current(0.83)
+tem.stack["c2"].set_focal_length(1.2e-3)
+tem.stack["condenser_stig"].set_x(-0.02)
+tem.stack["condenser_stig"].set_y(0.01)
+
+tem.add_runtime_mode(TEMRuntimeMode(
+    "probe_search",
+    optical_mode = TEMOpticalMode.STEM,
+    component_parameters = {
+        "c2": {
+            "current": 0.78,
+            "focal_length": 1.4e-3
+        },
+        "condenser_stig": {
+            "x": -0.03,
+            "y": 0.015
+        }
+    }
+))
+
+tem.activate_runtime_mode("probe_search")
+```
