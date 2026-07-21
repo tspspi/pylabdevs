@@ -33,10 +33,6 @@ Currently implemented base classes:
    * [NanoVNA v2](https://github.com/tspspi/pynanovnav2) (work in progress)
 * Scanning Electron Microscopes
    * [XL30 ESEM](https://github.com/tspspi/pyxl30) (work in progress)
-* Transmission electron microscopes
-   * `TransmissionElectronMicroscope` provides a backend agnostic class based abstraction for a modular TEM stack
-   * `TEMStack` models the ordered column and detector chain
-   * Subsystems such as `ElectronSource`, `Monochromator`, `Lens`, `Stigmator`, `AberrationCorrector`, `ScanGenerator`, `SampleStage`, `EnergyFilter`, `Spectrometer` and `Detector` are represented as separate classes
 * General purpose I/O devices
    * [Rasbperry PI GPIO under FreeBSD](https://github.com/tspspi/fbsdgpio/)
 * SPI bus
