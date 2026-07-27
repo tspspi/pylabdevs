@@ -15,12 +15,15 @@ class TEMSubsystemKind(Enum):
     ELECTRON_SOURCE = "electron_source"
     MONOCHROMATOR = "monochromator"
     APERTURE = "aperture"
+    N_POLE_MAGNET = "n_pole_magnet"
     LENS = "lens"
     DEFLECTOR = "deflector"
     STIGMATOR = "stigmator"
     ABERRATION_CORRECTOR = "aberration_corrector"
     SCAN_GENERATOR = "scan_generator"
+    BEAM_BLANKER = "beam_blanker"
     SAMPLE_STAGE = "sample_stage"
+    ENERGY_DISPERSIVE_SECTION = "energy_dispersive_section"
     ENERGY_FILTER = "energy_filter"
     SPECTROMETER = "spectrometer"
     DETECTOR = "detector"
@@ -32,7 +35,6 @@ class TEMSubsystemKind(Enum):
 class TEMColumnRegion(Enum):
     EMISSION = "emission"
     ILLUMINATION = "illumination"
-    PRE_SPECIMEN = "pre_specimen"
     SPECIMEN = "specimen"
     POST_SPECIMEN = "post_specimen"
     DETECTION = "detection"
@@ -52,6 +54,13 @@ class TEMDetectorMode(Enum):
     CAMERA = "camera"
     PIXELATED = "pixelated"
     OTHER = "other"
+
+
+class TEMApertureShape(Enum):
+    ROUND = "round"
+    RECTANGULAR = "rectangular"
+    ANNULAR = "annular"
+    FREE_FORM = "free_form"
 
 
 class TEMParameter:
@@ -339,7 +348,7 @@ class ElectronSource(TEMComponent):
                 TEMParameter("acceleration_voltage", unit="V", description="Electron acceleration voltage"),
                 TEMParameter("emission_current", unit="A", description="Electron emission current"),
                 TEMParameter("extractor_voltage", unit="V", description="Extractor electrode voltage"),
-                TEMParameter("gun_lens_current", unit="A", description="Gun lens current")
+                TEMParameter("gun_lens_voltage", unit="V", description="Gun lens voltage")
             ]
         super().__init__(
             name=name,
@@ -371,11 +380,11 @@ class ElectronSource(TEMComponent):
     def get_extractor_voltage(self):
         return self.get_parameter("extractor_voltage")
 
-    def set_gun_lens_current(self, current):
-        self.set_parameter("gun_lens_current", current)
+    def set_gun_lens_voltage(self, voltage):
+        self.set_parameter("gun_lens_voltage", voltage)
 
-    def get_gun_lens_current(self):
-        return self.get_parameter("gun_lens_current")
+    def get_gun_lens_voltage(self):
+        return self.get_parameter("gun_lens_voltage")
 
 
 class Monochromator(TEMComponent):
@@ -406,37 +415,57 @@ class Monochromator(TEMComponent):
 
 
 class Aperture(TEMComponent):
-    def __init__(self, name, aperture_family=None, **kwargs):
+    def __init__(self, name, aperture_family=None, shape=TEMApertureShape.ROUND, **kwargs):
+        if "supported_parameters" not in kwargs:
+            kwargs["supported_parameters"] = [
+                TEMParameter("diameter", unit="m", description="Aperture diameter for round apertures"),
+                TEMParameter("width", unit="m", description="Aperture width for rectangular apertures"),
+                TEMParameter("height", unit="m", description="Aperture height for rectangular apertures"),
+                TEMParameter("inner_diameter", unit="m", description="Inner diameter for annular apertures"),
+                TEMParameter("outer_diameter", unit="m", description="Outer diameter for annular apertures"),
+                TEMParameter("pattern", description="Free form aperture pattern identifier")
+            ]
         super().__init__(
             name=name,
             kind=TEMSubsystemKind.APERTURE,
             **kwargs
         )
+        if isinstance(shape, str):
+            shape = TEMApertureShape(shape)
+        if not isinstance(shape, TEMApertureShape):
+            raise ValueError("Aperture shape has to be a TEMApertureShape")
         self._aperture_family = aperture_family
+        self._shape = shape
 
     @property
     def aperture_family(self):
         return self._aperture_family
 
+    @property
+    def shape(self):
+        return self._shape
 
-class Lens(TEMComponent):
-    def __init__(self, name, lens_family=None, **kwargs):
+
+class NPoleMagnet(TEMComponent):
+    def __init__(self, name, pole_count, kind=TEMSubsystemKind.N_POLE_MAGNET, **kwargs):
         if "supported_parameters" not in kwargs:
             kwargs["supported_parameters"] = [
-                TEMParameter("current", unit="A", description="Lens current"),
-                TEMParameter("excitation", unit="1", description="Normalized lens excitation"),
-                TEMParameter("focal_length", unit="m", description="Effective focal length")
+                TEMParameter("current", unit="A", description="Magnet current"),
+                TEMParameter("excitation", unit="1", description="Normalized magnet excitation"),
+                TEMParameter("field_strength", unit="T", description="Effective magnetic field strength")
             ]
         super().__init__(
             name=name,
-            kind=TEMSubsystemKind.LENS,
+            kind=kind,
             **kwargs
         )
-        self._lens_family = lens_family
+        if not isinstance(pole_count, int) or pole_count < 1:
+            raise ValueError("Pole count has to be a positive integer")
+        self._pole_count = pole_count
 
     @property
-    def lens_family(self):
-        return self._lens_family
+    def pole_count(self):
+        return self._pole_count
 
     def set_current(self, current):
         self.set_parameter("current", current)
@@ -450,6 +479,30 @@ class Lens(TEMComponent):
     def get_excitation(self):
         return self.get_parameter("excitation")
 
+    def set_field_strength(self, field_strength):
+        self.set_parameter("field_strength", field_strength)
+
+    def get_field_strength(self):
+        return self.get_parameter("field_strength")
+
+
+class Lens(NPoleMagnet):
+    def __init__(self, name, lens_family=None, **kwargs):
+        if "supported_parameters" not in kwargs:
+            kwargs["supported_parameters"] = [
+                TEMParameter("current", unit="A", description="Lens current"),
+                TEMParameter("excitation", unit="1", description="Normalized lens excitation"),
+                TEMParameter("field_strength", unit="T", description="Effective lens field strength"),
+                TEMParameter("focal_length", unit="m", description="Effective focal length")
+            ]
+        pole_count = kwargs.pop("pole_count", 2)
+        super().__init__(name=name, pole_count=pole_count, kind=TEMSubsystemKind.LENS, **kwargs)
+        self._lens_family = lens_family
+
+    @property
+    def lens_family(self):
+        return self._lens_family
+
     def set_focal_length(self, focal_length):
         self.set_parameter("focal_length", focal_length)
 
@@ -457,18 +510,17 @@ class Lens(TEMComponent):
         return self.get_parameter("focal_length")
 
 
-class Deflector(TEMComponent):
-    def __init__(self, name, axis_count=2, **kwargs):
+class Deflector(NPoleMagnet):
+    def __init__(self, name, axis_count=2, pole_count=2, kind=TEMSubsystemKind.DEFLECTOR, **kwargs):
         if "supported_parameters" not in kwargs:
             kwargs["supported_parameters"] = [
+                TEMParameter("current", unit="A", description="Deflector current"),
+                TEMParameter("excitation", unit="1", description="Normalized deflector excitation"),
+                TEMParameter("field_strength", unit="T", description="Effective deflector field strength"),
                 TEMParameter("x", description="Deflection along x axis"),
                 TEMParameter("y", description="Deflection along y axis")
             ]
-        super().__init__(
-            name=name,
-            kind=TEMSubsystemKind.DEFLECTOR,
-            **kwargs
-        )
+        super().__init__(name=name, pole_count=pole_count, kind=kind, **kwargs)
         if not isinstance(axis_count, int) or axis_count < 1:
             raise ValueError("Axis count has to be a positive integer")
         self._axis_count = axis_count
@@ -490,18 +542,17 @@ class Deflector(TEMComponent):
         return self.get_parameter("y")
 
 
-class Stigmator(TEMComponent):
-    def __init__(self, name, axis_count=2, **kwargs):
+class Stigmator(NPoleMagnet):
+    def __init__(self, name, axis_count=2, pole_count=4, **kwargs):
         if "supported_parameters" not in kwargs:
             kwargs["supported_parameters"] = [
+                TEMParameter("current", unit="A", description="Stigmator current"),
+                TEMParameter("excitation", unit="1", description="Normalized stigmator excitation"),
+                TEMParameter("field_strength", unit="T", description="Effective stigmator field strength"),
                 TEMParameter("x", description="Stigmation along x axis"),
                 TEMParameter("y", description="Stigmation along y axis")
             ]
-        super().__init__(
-            name=name,
-            kind=TEMSubsystemKind.STIGMATOR,
-            **kwargs
-        )
+        super().__init__(name=name, pole_count=pole_count, kind=TEMSubsystemKind.STIGMATOR, **kwargs)
         if not isinstance(axis_count, int) or axis_count < 1:
             raise ValueError("Axis count has to be a positive integer")
         self._axis_count = axis_count
@@ -588,7 +639,7 @@ class ScanGenerator(TEMComponent):
         super().__init__(
             name=name,
             kind=TEMSubsystemKind.SCAN_GENERATOR,
-            region=TEMColumnRegion.PRE_SPECIMEN,
+            region=TEMColumnRegion.ILLUMINATION,
             **kwargs
         )
 
@@ -621,6 +672,30 @@ class ScanGenerator(TEMComponent):
 
     def get_scan_offset_y(self):
         return self.get_parameter("scan_offset_y")
+
+
+class BeamBlanker(Deflector):
+    def __init__(self, name, **kwargs):
+        if "supported_parameters" not in kwargs:
+            kwargs["supported_parameters"] = [
+                TEMParameter("current", unit="A", description="Beam blanker current"),
+                TEMParameter("excitation", unit="1", description="Normalized beam blanker excitation"),
+                TEMParameter("field_strength", unit="T", description="Effective beam blanker field strength"),
+                TEMParameter("x", description="Blanker deflection along x axis"),
+                TEMParameter("y", description="Blanker deflection along y axis"),
+                TEMParameter("blanked", description="Beam blanking state")
+            ]
+        super().__init__(
+            name=name,
+            kind=TEMSubsystemKind.BEAM_BLANKER,
+            **kwargs
+        )
+
+    def set_blanked(self, value):
+        self.set_parameter("blanked", value)
+
+    def get_blanked(self):
+        return self.get_parameter("blanked")
 
 
 class SampleStage(TEMComponent):
@@ -680,19 +755,27 @@ class SampleStage(TEMComponent):
         return self.get_parameter("beta")
 
 
-class EnergyFilter(TEMComponent):
-    def __init__(self, name, **kwargs):
+class EnergyDispersiveSection(TEMComponent):
+    def __init__(self, name, kind=TEMSubsystemKind.ENERGY_DISPERSIVE_SECTION, **kwargs):
         if "supported_parameters" not in kwargs:
             kwargs["supported_parameters"] = [
+                TEMParameter("dispersion", description="Energy dispersion"),
                 TEMParameter("energy_window_center", unit="eV", description="Energy window center"),
-                TEMParameter("energy_window_width", unit="eV", description="Energy window width")
+                TEMParameter("energy_window_width", unit="eV", description="Energy window width"),
+                TEMParameter("collection_angle", unit="rad", description="Collection angle")
             ]
         super().__init__(
             name=name,
-            kind=TEMSubsystemKind.ENERGY_FILTER,
+            kind=kind,
             region=TEMColumnRegion.POST_SPECIMEN,
             **kwargs
         )
+
+    def set_dispersion(self, value):
+        self.set_parameter("dispersion", value)
+
+    def get_dispersion(self):
+        return self.get_parameter("dispersion")
 
     def set_energy_window_center(self, value):
         self.set_parameter("energy_window_center", value)
@@ -706,32 +789,21 @@ class EnergyFilter(TEMComponent):
     def get_energy_window_width(self):
         return self.get_parameter("energy_window_width")
 
-
-class Spectrometer(TEMComponent):
-    def __init__(self, name, **kwargs):
-        if "supported_parameters" not in kwargs:
-            kwargs["supported_parameters"] = [
-                TEMParameter("dispersion", description="Spectrometer dispersion"),
-                TEMParameter("collection_angle", unit="rad", description="Collection angle")
-            ]
-        super().__init__(
-            name=name,
-            kind=TEMSubsystemKind.SPECTROMETER,
-            region=TEMColumnRegion.DETECTION,
-            **kwargs
-        )
-
-    def set_dispersion(self, value):
-        self.set_parameter("dispersion", value)
-
-    def get_dispersion(self):
-        return self.get_parameter("dispersion")
-
     def set_collection_angle(self, value):
         self.set_parameter("collection_angle", value)
 
     def get_collection_angle(self):
         return self.get_parameter("collection_angle")
+
+
+class EnergyFilter(EnergyDispersiveSection):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name, kind=TEMSubsystemKind.ENERGY_FILTER, **kwargs)
+
+
+class Spectrometer(EnergyDispersiveSection):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name, kind=TEMSubsystemKind.SPECTROMETER, **kwargs)
 
 
 class Detector(TEMComponent):
@@ -783,6 +855,46 @@ class Detector(TEMComponent):
 
     def get_binning(self):
         return self.get_parameter("binning")
+
+
+class AnnularDetector(Detector):
+    def __init__(self, name, detector_modes=None, **kwargs):
+        if "supported_parameters" not in kwargs:
+            kwargs["supported_parameters"] = [
+                TEMParameter("exposure_time", unit="s", description="Detector exposure time"),
+                TEMParameter("gain", description="Detector gain"),
+                TEMParameter("binning", description="Detector binning"),
+                TEMParameter("inner_angle", unit="rad", description="Inner collection angle"),
+                TEMParameter("outer_angle", unit="rad", description="Outer collection angle")
+            ]
+        super().__init__(name=name, detector_modes=detector_modes, **kwargs)
+
+    def set_inner_angle(self, value):
+        self.set_parameter("inner_angle", value)
+
+    def get_inner_angle(self):
+        return self.get_parameter("inner_angle")
+
+    def set_outer_angle(self, value):
+        self.set_parameter("outer_angle", value)
+
+    def get_outer_angle(self):
+        return self.get_parameter("outer_angle")
+
+
+class AnnularBrightFieldDetector(AnnularDetector):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name, detector_modes=[TEMDetectorMode.ANNULAR_BRIGHT_FIELD], **kwargs)
+
+
+class AnnularDarkFieldDetector(AnnularDetector):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name, detector_modes=[TEMDetectorMode.ANNULAR_DARK_FIELD], **kwargs)
+
+
+class HighAngleAnnularDarkFieldDetector(AnnularDetector):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name, detector_modes=[TEMDetectorMode.HIGH_ANGLE_ANNULAR_DARK_FIELD], **kwargs)
 
 
 class TEMStack:
@@ -987,8 +1099,7 @@ class TEMStack:
             for component in self._stack
             if component.region in (
                 TEMColumnRegion.EMISSION,
-                TEMColumnRegion.ILLUMINATION,
-                TEMColumnRegion.PRE_SPECIMEN
+                TEMColumnRegion.ILLUMINATION
             )
         )
 

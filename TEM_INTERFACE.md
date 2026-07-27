@@ -10,7 +10,7 @@ The goal of the abstraction is:
   protocol message IDs, TCP commands or vendor specific naming
 * the optical column should stay modular because different instruments expose
   different combinations of sources, monochromators, condenser systems,
-  correctors, scanners, stages, filters, spectrometers and detectors
+  correctors, scanners, stages, beam blankers, energy dispersive sections and detectors
 * a backend should be able to expose both standard operating points and
   intermediate runtime states where individual components are tuned directly
 
@@ -65,8 +65,8 @@ Example:
 ```python
 from labdevices.tem import TEMColumnRegion, TEMDetectorMode, TEMOpticalMode
 from labdevices.tem import TEMStack
-from labdevices.tem import ElectronSource, Monochromator, Lens, Stigmator
-from labdevices.tem import ScanGenerator, SampleStage, Detector
+from labdevices.tem import ElectronSource, Monochromator, Lens, Stigmator, BeamBlanker
+from labdevices.tem import ScanGenerator, SampleStage, Spectrometer, HighAngleAnnularDarkFieldDetector
 
 stack = TEMStack([
     ElectronSource("gun"),
@@ -74,11 +74,12 @@ stack = TEMStack([
     Lens("c1", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
     Lens("c2", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
     Stigmator("condenser_stig", region = TEMColumnRegion.ILLUMINATION),
+    BeamBlanker("blanker", region = TEMColumnRegion.ILLUMINATION),
     ScanGenerator("scan", supported_modes = [TEMOpticalMode.STEM]),
     SampleStage("stage"),
-    Detector(
+    Spectrometer("eels", supported_modes = [TEMOpticalMode.SPECTROSCOPY]),
+    HighAngleAnnularDarkFieldDetector(
         "haadf",
-        detector_modes = [TEMDetectorMode.HIGH_ANGLE_ANNULAR_DARK_FIELD],
         supported_modes = [TEMOpticalMode.STEM]
     )
 ])
@@ -91,7 +92,6 @@ Typical order:
 
 * source region
 * illumination region
-* pre specimen region
 * specimen region
 * post specimen region
 * detection region
@@ -142,15 +142,22 @@ Currently available component classes:
 * `ElectronSource`
 * `Monochromator`
 * `Aperture`
+* `NPoleMagnet`
 * `Lens`
 * `Deflector`
 * `Stigmator`
 * `AberrationCorrector`
 * `ScanGenerator`
+* `BeamBlanker`
 * `SampleStage`
+* `EnergyDispersiveSection`
 * `EnergyFilter`
 * `Spectrometer`
 * `Detector`
+* `AnnularDetector`
+* `AnnularBrightFieldDetector`
+* `AnnularDarkFieldDetector`
+* `HighAngleAnnularDarkFieldDetector`
 
 Each component has:
 
@@ -170,6 +177,9 @@ Parameters are semantic and backend agnostic. For example:
 * `focal_length`
 * `x`
 * `y`
+* `gun_lens_voltage`
+* `inner_angle`
+* `outer_angle`
 * `energy_window_width`
 * `exposure_time`
 
@@ -195,10 +205,11 @@ parameters where applicable. For example:
 
 ```python
 tem.stack["gun"].set_acceleration_voltage(200000)
+tem.stack["gun"].set_gun_lens_voltage(3200)
 tem.stack["mono"].set_slit_width(0.2)
 tem.stack["c2"].set_focal_length(1.2e-3)
 tem.stack["stage"].set_alpha(12.0)
-tem.stack["camera"].set_exposure_time(0.1)
+tem.stack["haadf"].set_outer_angle(0.18)
 ```
 
 This is useful for direct coding and for discoverability in IDEs.
@@ -248,11 +259,12 @@ Examples:
 
 * `gun.acceleration_voltage`
 * `gun.emission_current`
+* `gun.gun_lens_voltage`
 * `mono.slit_width`
 * `c2.current`
 * `c2.focal_length`
 * `stage.alpha`
-* `camera.exposure_time`
+* `haadf.outer_angle`
 
 ### `get_parameter_names()`
 
