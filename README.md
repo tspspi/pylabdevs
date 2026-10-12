@@ -56,8 +56,9 @@ Example:
 ```python
 from labdevices.tem import TransmissionElectronMicroscope
 from labdevices.tem import TEMStack, TEMOpticalMode, TEMDetectorMode, TEMColumnRegion
-from labdevices.tem import ElectronSource, Monochromator, Lens, Stigmator
-from labdevices.tem import ScanGenerator, SampleStage, AberrationCorrector, Detector
+from labdevices.tem import ElectronSource, Monochromator, Lens, Stigmator, BeamBlanker
+from labdevices.tem import ScanGenerator, SampleStage, AberrationCorrector
+from labdevices.tem import Spectrometer, HighAngleAnnularDarkFieldDetector
 
 stack = TEMStack([
     ElectronSource("x_feg", emission_type = "cold_field_emission"),
@@ -65,12 +66,13 @@ stack = TEMStack([
     Lens("c1", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
     Lens("c2", lens_family = "condenser", region = TEMColumnRegion.ILLUMINATION),
     Stigmator("condenser_stig", region = TEMColumnRegion.ILLUMINATION),
+    BeamBlanker("blanker", region = TEMColumnRegion.ILLUMINATION),
     ScanGenerator("scan_generator", supported_modes = [TEMOpticalMode.STEM]),
     SampleStage("eucentric_stage"),
+    Spectrometer("eels", supported_modes = [TEMOpticalMode.SPECTROSCOPY]),
     AberrationCorrector("probe_corrector", region = TEMColumnRegion.POST_SPECIMEN),
-    Detector(
+    HighAngleAnnularDarkFieldDetector(
         "haadf",
-        detector_modes = [TEMDetectorMode.HIGH_ANGLE_ANNULAR_DARK_FIELD],
         supported_modes = [TEMOpticalMode.STEM]
     )
 ])
